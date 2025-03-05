@@ -1,0 +1,11 @@
+services:
+  telegram:
+    image: mediumscraper
+    container_name: mediumscraper
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/app
+    env_file: .env
+    restart: unless-stopped
