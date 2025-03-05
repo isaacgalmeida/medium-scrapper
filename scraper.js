@@ -18,31 +18,14 @@ const scrapeArticles = async () => {
     const page = await browser.newPage();
     console.log(`Navegando até: ${pageMedium}`);
     await page.goto(pageMedium, { waitUntil: "networkidle2" });
-    console.log("Página carregada, aguardando o elemento via XPath...");
+    console.log("Página carregada, extraindo todo o HTML...");
 
-    const xpathExpression = '/html/body/div[3]';
-    // Aguarda até que o elemento seja encontrado usando waitForFunction
-    await page.waitForFunction(
-      (xpath) => {
-        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null;
-      },
-      { timeout: 60000 },
-      xpathExpression
-    );
-    console.log("Elemento XPath encontrado, extraindo conteúdo...");
-
-    // Obtém o elemento usando $x
-    const elements = await page.$x(xpathExpression);
-    if (elements.length === 0) {
-      throw new Error("Elemento XPath não encontrado.");
-    }
-
-    // Extrai o HTML interno do elemento
-    const contentHTML = await page.evaluate(el => el.innerHTML, elements[0]);
+    // Obtém todo o conteúdo HTML da página
+    const fullHTML = await page.content();
 
     console.log(`Scraper executado em ${new Date()}`);
-    fs.writeFileSync("articles.json", JSON.stringify({ content: contentHTML }, null, 2), "utf-8");
-    console.log("Conteúdo salvo em articles.json");
+    fs.writeFileSync("page.html", fullHTML, "utf-8");
+    console.log("Conteúdo HTML salvo em page.html");
   } catch (error) {
     console.error("Erro no scraper:", error);
   } finally {
