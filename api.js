@@ -1,14 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Ativa o plugin stealth
+puppeteer.use(StealthPlugin());
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_BEARER_TOKEN = process.env.API_BEARER_TOKEN || 'abcd';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:8000';
 
-// Middleware para autenticação Bearer
+// Middleware para autenticação via Bearer
 app.use((req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,8 +25,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Endpoint /scrape: recebe uma URL via query, obtém os cookies e o user-agent pelo endpoint /cookies do servidor,
-// e utiliza o Puppeteer para navegar na página com os cookies injetados, extraindo o HTML entre <html> e </html>.
+// Endpoint /scrape: utiliza o servidor de bypass para obter os cookies e o user-agent,
+// e depois usa o puppeteer-extra (com stealth) para navegar na página com esses cookies.
 app.get('/scrape', async (req, res) => {
   const url = req.query.url;
   if (!url) {
@@ -31,7 +35,6 @@ app.get('/scrape', async (req, res) => {
   
   try {
     console.log(`Obtendo cookies para a URL: ${url}`);
-    // Chama o endpoint /cookies para obter os cookies e o user-agent
     const cookiesEndpoint = `${SERVER_URL}/cookies?url=${encodeURIComponent(url)}`;
     console.log(`Chamando endpoint de cookies: ${cookiesEndpoint}`);
     
@@ -41,14 +44,14 @@ app.get('/scrape', async (req, res) => {
     console.log("Cookies recebidos:", cookies);
     console.log("User-Agent recebido:", user_agent);
     
-    console.log("Iniciando o Puppeteer...");
+    console.log("Iniciando o Puppeteer-extra com plugin stealth...");
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
     
-    // Configura o user-agent
+    // Configura o user-agent conforme recebido
     await page.setUserAgent(user_agent);
     
     // Prepara os cookies para injeção (definindo o domínio com base na URL alvo)
@@ -70,7 +73,7 @@ app.get('/scrape', async (req, res) => {
     await browser.close();
     console.log("Navegador fechado.");
     
-    // Extrai a parte do HTML que inicia com <html> e termina com </html>
+    // Extrai a parte do HTML entre <html> e </html>
     const startIndex = fullHTML.indexOf('<html>');
     const endIndex = fullHTML.lastIndexOf('</html>');
     if (startIndex === -1 || endIndex === -1) {
