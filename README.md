@@ -15,7 +15,7 @@ Este projeto tem como finalidade realizar o scraping de conteúdo do Medium util
 Utilize o container Docker para contornar a proteção do Cloudflare. Execute o comando abaixo para iniciar o container em modo detach, expondo a porta 8000:
 
 ```bash
-docker run -d -p 8000:8000 ghcr.io/sarperavci/cloudflarebypassforscraping:latest
+docker run -d --name cloudflare-bypass --network n8n_default -p 8000:8000 ghcr.io/sarperavci/cloudflarebypassforscraping:latest
 ```
 
 ### 2. Configurar o Projeto
