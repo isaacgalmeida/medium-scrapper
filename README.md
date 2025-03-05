@@ -1,18 +1,18 @@
-# Cloudflare Bypass Scraper (Node.js)
+# Medium Scraper with Cloudflare Bypass (Node.js)
 
-Este projeto utiliza um servidor em modo Cloudflare Bypass (executado via Docker) para contornar a proteção do Cloudflare e extrair o HTML renderizado de uma página. O scraper em Node.js faz requisições periódicas ao endpoint `/html` do servidor e salva o conteúdo retornado em um arquivo `article.html`.
+Este projeto tem como finalidade realizar o scraping de conteúdo do Medium utilizando um servidor em modo Cloudflare Bypass para contornar as proteções da Cloudflare. O scraper em Node.js faz requisições periódicas ao endpoint `/html` do servidor e salva o HTML renderizado da página do Medium em um arquivo `article.html`.
 
 ## Pré-requisitos
 
 - [Docker](https://www.docker.com/) instalado e em execução.
 - [Node.js](https://nodejs.org/) (versão 12 ou superior) e npm instalados.
-- (Opcional) Ambiente virtual para Node.js (por exemplo, [nvm](https://github.com/nvm-sh/nvm)).
+- (Opcional) Gerenciador de versões Node (como [nvm](https://github.com/nvm-sh/nvm)).
 
 ## Instruções de Uso
 
-### 1. Iniciar o Servidor de Bypass (Modo Server)
+### 1. Iniciar o Servidor de Bypass
 
-Utilize o container Docker fornecido para contornar a proteção do Cloudflare. Execute o comando abaixo para iniciar o container em modo detach, expondo a porta 8000:
+Utilize o container Docker para contornar a proteção do Cloudflare. Execute o comando abaixo para iniciar o container em modo detach, expondo a porta 8000:
 
 ```bash
 docker run -d -p 8000:8000 ghcr.io/sarperavci/cloudflarebypassforscraping:latest
@@ -36,7 +36,7 @@ Abra um terminal na pasta do projeto e execute:
 npm install
 ```
 
-Isso instalará as dependências necessárias, conforme definido no `package.json` (axios e dotenv).
+Isso instalará as dependências necessárias (axios e dotenv).
 
 ### 4. Executar o Scraper
 
@@ -46,7 +46,7 @@ Após iniciar o servidor Docker e configurar o projeto, execute o scraper:
 node scraper.js
 ```
 
-O scraper fará requisições periódicas ao endpoint `/html` do servidor e salvará o HTML renderizado no arquivo `article.html`.
+O scraper fará requisições periódicas ao endpoint `/html` do servidor para obter o conteúdo renderizado da página do Medium e salvará o HTML no arquivo `article.html`.
 
 ## Estrutura do Projeto
 
@@ -66,10 +66,10 @@ O scraper fará requisições periódicas ao endpoint `/html` do servidor e salv
   O intervalo entre as execuções do scraper é definido pela variável `INTERVAL_MINUTES` no arquivo `.env`.
 
 - **Modo Server:**  
-  O servidor Docker utilizado fornece dois endpoints: `/cookies` e `/html`. Este projeto utiliza o endpoint `/html` para obter o conteúdo renderizado da página contornando a proteção do Cloudflare.
+  O servidor Docker fornece dois endpoints (`/cookies` e `/html`). Este projeto utiliza o endpoint `/html` para obter o conteúdo renderizado do Medium, contornando as proteções do Cloudflare.
 
 - **Timeout:**  
-  O scraper utiliza um timeout de 10 segundos para as requisições HTTP. Se a requisição demorar mais do que isso, ocorrerá um erro e o scraper aguardará o intervalo definido para tentar novamente.
+  O scraper utiliza um timeout de 10 segundos para as requisições HTTP. Caso a requisição demore mais do que esse tempo, ocorrerá um erro e o scraper aguardará o intervalo definido para tentar novamente.
 
 ## Contribuição
 
