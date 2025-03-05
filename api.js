@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 const API_BEARER_TOKEN = process.env.API_BEARER_TOKEN || 'abcd';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:8000';
 
-// Middleware para autenticação via Bearer
+// Middleware para autenticação Bearer
 app.use((req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,7 +21,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Endpoint /scrape: recebe uma URL via query e retorna o HTML entre <html> e </html>
+// Endpoint /scrape: recebe uma URL via query, obtém os cookies e o user-agent pelo endpoint /cookies do servidor,
+// e utiliza o Puppeteer para navegar na página com os cookies injetados, extraindo o HTML entre <html> e </html>.
 app.get('/scrape', async (req, res) => {
   const url = req.query.url;
   if (!url) {
@@ -30,24 +31,27 @@ app.get('/scrape', async (req, res) => {
   
   try {
     console.log(`Obtendo cookies para a URL: ${url}`);
-    // Chama o endpoint /cookies para obter os cookies e o user agent
+    // Chama o endpoint /cookies para obter os cookies e o user-agent
     const cookiesEndpoint = `${SERVER_URL}/cookies?url=${encodeURIComponent(url)}`;
     console.log(`Chamando endpoint de cookies: ${cookiesEndpoint}`);
+    
     const cookieResponse = await axios.get(cookiesEndpoint, { timeout: 10000 });
     const { cookies, user_agent } = cookieResponse.data;
+    
     console.log("Cookies recebidos:", cookies);
     console.log("User-Agent recebido:", user_agent);
     
-    // Lança o Puppeteer e configura a página
     console.log("Iniciando o Puppeteer...");
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
+    
+    // Configura o user-agent
     await page.setUserAgent(user_agent);
     
-    // Prepara os cookies para injeção
+    // Prepara os cookies para injeção (definindo o domínio com base na URL alvo)
     const parsedUrl = new URL(url);
     const cookieArray = Object.entries(cookies).map(([name, value]) => ({
       name,
@@ -66,7 +70,7 @@ app.get('/scrape', async (req, res) => {
     await browser.close();
     console.log("Navegador fechado.");
     
-    // Extrai a parte do HTML entre <html> e </html>
+    // Extrai a parte do HTML que inicia com <html> e termina com </html>
     const startIndex = fullHTML.indexOf('<html>');
     const endIndex = fullHTML.lastIndexOf('</html>');
     if (startIndex === -1 || endIndex === -1) {
