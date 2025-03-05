@@ -6,8 +6,8 @@ const INTERVAL_MINUTES = parseFloat(process.env.INTERVAL_MINUTES);
 
 const scrapeArticles = async () => {
   const pageMedium = process.env.PAGE_MEDIUM;
-  const numberOfArticles = parseInt(process.env.NUMBER_OF_ARTICLES, 10) || 1;
-
+  // NUMBER_OF_ARTICLES não é utilizado, pois estamos extraindo um único container via XPath.
+  
   let browser;
   try {
     console.log("Iniciando o navegador...");
@@ -19,23 +19,23 @@ const scrapeArticles = async () => {
     const page = await browser.newPage();
     console.log(`Navegando até: ${pageMedium}`);
     await page.goto(pageMedium, { waitUntil: "networkidle2" });
-    console.log("Página carregada, aguardando o seletor do conteúdo...");
+    console.log("Página carregada, aguardando o elemento via XPath...");
 
-    // Seletor da div que contém o conteúdo do artigo
-    const containerSelector =
-      'div.container.w-full.pt-20.mx-auto.text-gray-900.break-words.bg-white.md\\:max-w-3xl.dark\\:text-gray-200.dark\\:bg-gray-800';
+    // Aguarda o elemento identificado pelo XPath /html/body/div[3]
+    await page.waitForXPath('/html/body/div[3]', { timeout: 60000 });
+    console.log("Elemento XPath encontrado, extraindo conteúdo...");
 
-    await page.waitForSelector(containerSelector, { timeout: 60000 });
-    console.log("Seletor encontrado, extraindo conteúdo...");
+    // Obtém o elemento usando XPath
+    const elements = await page.$x('/html/body/div[3]');
+    if (elements.length === 0) {
+      throw new Error("Elemento XPath não encontrado.");
+    }
 
-    // Extrai o HTML do(s) container(es)
-    const articles = await page.evaluate((numberOfArticles, selector) => {
-      const containers = Array.from(document.querySelectorAll(selector));
-      return containers.slice(0, numberOfArticles).map((el) => el.innerHTML);
-    }, numberOfArticles, containerSelector);
+    // Extrai o HTML interno do elemento
+    const contentHTML = await page.evaluate(el => el.innerHTML, elements[0]);
 
-    console.log(`Artigos extraídos com sucesso em ${new Date()}`);
-    fs.writeFileSync("articles.json", JSON.stringify(articles, null, 2), "utf-8");
+    console.log(`Scraper executado em ${new Date()}`);
+    fs.writeFileSync("articles.json", JSON.stringify({ content: contentHTML }, null, 2), "utf-8");
     console.log("Conteúdo salvo em articles.json");
   } catch (error) {
     console.error("Erro no scraper:", error);
@@ -52,9 +52,7 @@ const startScraper = async () => {
     console.log("Iniciando execução do scraper...");
     await scrapeArticles();
     console.log(`Aguardando ${INTERVAL_MINUTES} minutos antes de reiniciar o scraper.`);
-    await new Promise((resolve) =>
-      setTimeout(resolve, INTERVAL_MINUTES * 60 * 1000)
-    );
+    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MINUTES * 60 * 1000));
   }
 };
 
