@@ -13,6 +13,7 @@ app.use((req, res, next) => {
     return res.status(401).json({ error: 'No Bearer token provided' });
   }
   const token = authHeader.substring(7).trim();
+  console.log(token)
   if (token !== API_BEARER_TOKEN) {
     return res.status(403).json({ error: 'Invalid token' });
   }
