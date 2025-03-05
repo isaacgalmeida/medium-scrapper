@@ -6,7 +6,6 @@ const INTERVAL_MINUTES = parseFloat(process.env.INTERVAL_MINUTES);
 
 const scrapeArticles = async () => {
   const pageMedium = process.env.PAGE_MEDIUM;
-  // NUMBER_OF_ARTICLES não é utilizado, pois estamos extraindo um único container via XPath.
   
   let browser;
   try {
@@ -21,12 +20,19 @@ const scrapeArticles = async () => {
     await page.goto(pageMedium, { waitUntil: "networkidle2" });
     console.log("Página carregada, aguardando o elemento via XPath...");
 
-    // Aguarda o elemento identificado pelo XPath /html/body/div[3]
-    await page.waitForXPath('/html/body/div[3]', { timeout: 60000 });
+    const xpathExpression = '/html/body/div[3]';
+    // Aguarda até que o elemento seja encontrado usando waitForFunction
+    await page.waitForFunction(
+      (xpath) => {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null;
+      },
+      { timeout: 60000 },
+      xpathExpression
+    );
     console.log("Elemento XPath encontrado, extraindo conteúdo...");
 
-    // Obtém o elemento usando XPath
-    const elements = await page.$x('/html/body/div[3]');
+    // Obtém o elemento usando $x
+    const elements = await page.$x(xpathExpression);
     if (elements.length === 0) {
       throw new Error("Elemento XPath não encontrado.");
     }
@@ -52,7 +58,9 @@ const startScraper = async () => {
     console.log("Iniciando execução do scraper...");
     await scrapeArticles();
     console.log(`Aguardando ${INTERVAL_MINUTES} minutos antes de reiniciar o scraper.`);
-    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MINUTES * 60 * 1000));
+    await new Promise((resolve) =>
+      setTimeout(resolve, INTERVAL_MINUTES * 60 * 1000)
+    );
   }
 };
 
