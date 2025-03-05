@@ -1,37 +1,42 @@
 require('dotenv').config();
+const express = require('express');
 const axios = require('axios');
-const fs = require('fs');
 
-const INTERVAL_MINUTES = parseFloat(process.env.INTERVAL_MINUTES) || 10;
-const PAGE_MEDIUM = process.env.PAGE_MEDIUM;
+const app = express();
+const PORT = process.env.PORT || 3000;
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:8000';
 
-async function scrapePage() {
+app.get('/scrapper', async (req, res) => {
+  const url = req.query.url;
+  if (!url) {
+    return res.status(400).json({ error: 'Query parameter "url" is required' });
+  }
+  
   try {
-    console.log("Iniciando scraper usando o modo server para bypass do Cloudflare...");
-    // Monta a URL do endpoint /html com a URL da página a ser raspada
-    const endpoint = `${SERVER_URL}/html?url=${encodeURIComponent(PAGE_MEDIUM)}`;
-    console.log(`Chamando o endpoint: ${endpoint}`);
-
-    // Faz a requisição para o endpoint com timeout de 10 segundos
-    const response = await axios.get(endpoint, { timeout: 10000 });
-    const html = response.data;
+    console.log(`Obtendo HTML completo para a URL: ${url}`);
+    // Monta a URL do endpoint /html do servidor de bypass
+    const endpoint = `${SERVER_URL}/html?url=${encodeURIComponent(url)}`;
+    console.log(`Chamando endpoint: ${endpoint}`);
     
-    const outputFile = "article.html";
-    fs.writeFileSync(outputFile, html, "utf-8");
-    console.log(`Conteúdo salvo em ${outputFile} em ${new Date().toLocaleString()}`);
+    const response = await axios.get(endpoint, { timeout: 10000 });
+    const fullHTML = response.data;
+    
+    // Extrai a parte que inicia com <html> e termina com </html>
+    const startIndex = fullHTML.indexOf('<html>');
+    const endIndex = fullHTML.lastIndexOf('</html>');
+    if (startIndex === -1 || endIndex === -1) {
+      return res.status(500).json({ error: 'HTML tags not found in response' });
+    }
+    const htmlContent = fullHTML.substring(startIndex, endIndex + 7);
+    
+    res.set('Content-Type', 'text/html');
+    return res.send(htmlContent);
   } catch (error) {
-    console.error("Erro no scraper:", error.message);
+    console.error("Erro no endpoint /scrapper:", error.message);
+    return res.status(500).json({ error: 'Failed to scrape the URL' });
   }
-}
+});
 
-async function mainLoop() {
-  while (true) {
-    console.log("Iniciando execução do scraper...");
-    await scrapePage();
-    console.log(`Aguardando ${INTERVAL_MINUTES} minutos antes de reiniciar o scraper.`);
-    await new Promise(resolve => setTimeout(resolve, INTERVAL_MINUTES * 60 * 1000));
-  }
-}
-
-mainLoop();
+app.listen(PORT, () => {
+  console.log(`API rodando na porta ${PORT}`);
+});
